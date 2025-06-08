@@ -565,4 +565,361 @@
           
           speechRecognition.onresult = function(event) {
             let interimTranscript = '';
-            let fina
+            let finalTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+              } else {
+                interimTranscript += transcript;
+              }
+            }
+            
+            if (finalTranscript) {
+              transcriptText += finalTranscript;
+              const words = finalTranscript
+                .toLowerCase()
+                .replace(/[.,!?;:]/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter(word => word.length > 0);
+              
+              spokenWords = spokenWords.concat(words);
+            }
+            
+            speechText.textContent = transcriptText + interimTranscript;
+          };
+          
+          speechRecognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            isListening = false;
+            
+            if (event.error === 'not-allowed') {
+              apiStatus.textContent = '❌ Microphone Access Denied';
+              apiStatus.className = 'status-box api-status error';
+            } else if (event.error !== 'no-speech') {
+              apiStatus.textContent = `❌ Error: ${event.error}`;
+              apiStatus.className = 'status-box api-status error';
+            }
+          };
+          
+          speechRecognition.onend = function() {
+            isListening = false;
+            
+            if (isRunning) {
+              setTimeout(() => {
+                if (isRunning && speechRecognition) {
+                  try {
+                    speechRecognition.start();
+                  } catch (e) {
+                    console.error('Error restarting recognition:', e);
+                  }
+                }
+              }, 100);
+            } else {
+              apiStatus.textContent = '✅ Speech API: Ready';
+              apiStatus.className = 'status-box api-status ready';
+            }
+          };
+          
+          // Test initialization
+          speechRecognition.start();
+          setTimeout(() => {
+            if (speechRecognition && isListening) {
+              speechRecognition.stop();
+              resolve(true);
+            }
+          }, 500);
+          
+        } catch (error) {
+          reject(error.message);
+        }
+      });
+    }
+    
+    // Test speech recognition
+    function testSpeechRecognition() {
+      if (!speechRecognition) {
+        alert('Speech recognition not initialized. Please refresh the page.');
+        return;
+      }
+      
+      apiStatus.textContent = '🧪 Testing...';
+      speechText.textContent = 'Testing speech recognition... Say something!';
+      
+      try {
+        speechRecognition.start();
+        setTimeout(() => {
+          if (isListening && !isRunning) {
+            speechRecognition.stop();
+            apiStatus.textContent = '✅ Test Complete';
+          }
+        }, 5000);
+      } catch (error) {
+        console.error('Test failed:', error);
+        apiStatus.textContent = '❌ Test Failed';
+      }
+    }
+    
+    // Start practice session
+    function startPractice() {
+      if (isRunning || !speechRecognition) return;
+      
+      // Reset session
+      spokenWords = [];
+      transcriptText = '';
+      errorDetails = [];
+      seconds = 60;
+      isRunning = true;
+      
+      // Update UI
+      startButton.style.display = 'none';
+      stopButton.style.display = 'inline-block';
+      results.classList.remove('active');
+      speechText.textContent = 'Start reading the passage aloud...';
+      sessionStatus.textContent = '📊 Session: Active';
+      sessionStatus.className = 'status-box session-status active';
+      
+      // Start speech recognition
+      try {
+        speechRecognition.start();
+      } catch (error) {
+        console.error('Failed to start recognition:', error);
+        if (error.name === 'InvalidStateError') {
+          speechRecognition.stop();
+          setTimeout(() => {
+            try {
+              speechRecognition.start();
+            } catch (e) {
+              console.error('Restart failed:', e);
+            }
+          }, 100);
+        }
+      }
+      
+      // Start timer
+      timer = setInterval(updateTimer, 1000);
+    }
+    
+    // Stop practice session
+    function stopPractice() {
+      if (!isRunning) return;
+      
+      clearInterval(timer);
+      isRunning = false;
+      
+      if (speechRecognition && isListening) {
+        speechRecognition.stop();
+      }
+      
+      // Calculate results with detailed error analysis
+      calculateDetailedResults();
+      
+      // Update UI
+      startButton.style.display = 'inline-block';
+      stopButton.style.display = 'none';
+      sessionStatus.textContent = '📊 Session: Complete';
+      sessionStatus.className = 'status-box session-status';
+      
+      // Reset timer
+      timerElement.textContent = '1:00';
+      timerElement.className = '';
+    }
+    
+    // Update timer
+    function updateTimer() {
+      seconds--;
+      
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+      
+      if (seconds <= 10) {
+        timerElement.className = 'timer danger';
+      } else if (seconds <= 20) {
+        timerElement.className = 'timer warning';
+      }
+      
+      if (seconds <= 0) {
+        stopPractice();
+      }
+    }
+    
+    // Calculate detailed results with error analysis
+    function calculateDetailedResults() {
+      let correct = 0;
+      let incorrect = 0;
+      let substitutions = 0;
+      let omissions = 0;
+      const analysis = [];
+      errorDetails = [];
+      
+      // Compare spoken words to passage words
+      for (let i = 0; i < Math.max(spokenWords.length, passageWords.length); i++) {
+        if (i < spokenWords.length && i < passageWords.length) {
+          if (spokenWords[i] === passageWords[i]) {
+            correct++;
+            analysis.push({ word: spokenWords[i], status: 'correct' });
+          } else {
+            incorrect++;
+            substitutions++;
+            analysis.push({ 
+              word: spokenWords[i], 
+              expected: passageWords[i], 
+              status: 'incorrect' 
+            });
+            
+            // Add to error details
+            errorDetails.push({
+              type: 'substitution',
+              spoken: spokenWords[i],
+              expected: passageWords[i],
+              position: i + 1
+            });
+          }
+        } else if (i < passageWords.length) {
+          // Word was omitted
+          omissions++;
+          analysis.push({ word: passageWords[i], status: 'missed' });
+          
+          errorDetails.push({
+            type: 'omission',
+            expected: passageWords[i],
+            position: i + 1
+          });
+        }
+      }
+      
+      const totalWords = spokenWords.length;
+      const accuracy = totalWords > 0 ? Math.round((correct / totalWords) * 100) : 0;
+      const errorRate = totalWords > 0 ? Math.round(((incorrect + omissions) / totalWords) * 100) : 0;
+      const timeTaken = 60 - seconds;
+      const wpm = Math.round((totalWords / timeTaken) * 60);
+      
+      // Update basic results
+      document.getElementById('totalWords').textContent = totalWords;
+      document.getElementById('correctWords').textContent = correct;
+      document.getElementById('incorrectWords').textContent = incorrect;
+      document.getElementById('wpm').textContent = wpm;
+      document.getElementById('accuracy').textContent = accuracy + '%';
+      
+      // Update error statistics
+      document.getElementById('totalErrors').textContent = incorrect + omissions;
+      document.getElementById('substitutions').textContent = substitutions;
+      document.getElementById('omissions').textContent = omissions;
+      document.getElementById('errorRate').textContent = errorRate + '%';
+      
+      // Display detailed error list
+      displayErrorList();
+      
+      // Display word comparison
+      displayWordComparison(analysis);
+      
+      // Generate reading summary and tips
+      generateReadingSummary(accuracy, wpm, errorRate);
+      
+      // Show results
+      results.classList.add('active');
+    }
+    
+    // Display detailed error list
+    function displayErrorList() {
+      const errorList = document.getElementById('errorList');
+      errorList.innerHTML = '';
+      
+      if (errorDetails.length === 0) {
+        errorList.innerHTML = '<p style="color: #2e7d32; font-style: italic;">🎉 No errors detected! Great job!</p>';
+        return;
+      }
+      
+      errorDetails.forEach((error, index) => {
+        const errorItem = document.createElement('div');
+        errorItem.className = 'error-item';
+        
+        if (error.type === 'substitution') {
+          errorItem.innerHTML = `
+            <span class="error-spoken">"${error.spoken}"</span>
+            <span class="error-arrow">→</span>
+            <span class="error-expected">"${error.expected}"</span>
+            <small style="color: #666;">(Position ${error.position})</small>
+          `;
+        } else if (error.type === 'omission') {
+          errorItem.innerHTML = `
+            <span class="error-spoken">SKIPPED</span>
+            <span class="error-arrow">→</span>
+            <span class="error-expected">"${error.expected}"</span>
+            <small style="color: #666;">(Position ${error.position})</small>
+          `;
+        }
+        
+        errorList.appendChild(errorItem);
+      });
+    }
+    
+    // Display word comparison with tooltips
+    function displayWordComparison(analysis) {
+      const container = document.getElementById('wordComparison');
+      container.innerHTML = '';
+      
+      const sampleSize = Math.min(100, analysis.length);
+      for (let i = 0; i < sampleSize; i++) {
+        const item = analysis[i];
+        const span = document.createElement('span');
+        span.className = 'word word-' + item.status;
+        
+        if (item.status === 'incorrect') {
+          span.textContent = item.word;
+          span.setAttribute('data-tooltip', `Expected: "${item.expected}"`);
+        } else {
+          span.textContent = item.word;
+        }
+        
+        container.appendChild(span);
+      }
+      
+      if (analysis.length > sampleSize) {
+        const more = document.createElement('span');
+        more.textContent = `... and ${analysis.length - sampleSize} more words`;
+        more.style.fontStyle = 'italic';
+        more.style.color = '#666';
+        container.appendChild(more);
+      }
+    }
+    
+    // Generate reading summary and improvement tips
+    function generateReadingSummary(accuracy, wpm, errorRate) {
+      const summaryElement = document.getElementById('readingSummary');
+      const tipsElement = document.getElementById('tipsList');
+      
+      // Generate summary
+      let summary = '';
+      if (accuracy >= 95) {
+        summary = '🌟 Excellent reading! Your accuracy is outstanding.';
+      } else if (accuracy >= 85) {
+        summary = '👍 Good reading! Your accuracy is solid with room for minor improvements.';
+      } else if (accuracy >= 70) {
+        summary = '📚 Developing reader. Focus on accuracy while maintaining pace.';
+      } else {
+        summary = '🎯 Keep practicing! Focus on reading each word carefully.';
+      }
+      
+      if (wpm >= 150) {
+        summary += ' Your reading speed is excellent.';
+      } else if (wpm >= 120) {
+        summary += ' Your reading speed is good.';
+      } else if (wpm >= 90) {
+        summary += ' Your reading speed is developing well.';
+      } else {
+        summary += ' Work on building your reading speed gradually.';
+      }
+      
+      summaryElement.textContent = summary;
+      
+      // Generate tips
+      tipsElement.innerHTML = '';
+      const tips = [];
+      
+      if (accuracy < 90) {
+        tips.push('Practice reading slowly and carefully to pronounce the words.'); }
+        else { tips.push('Great job!'); }
