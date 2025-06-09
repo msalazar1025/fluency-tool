@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fluency Practice with Homophone Support</title>
+  <title>Fluency Practice with Homophone Support - Fixed</title>
   <style>
     * {
       box-sizing: border-box;
@@ -234,14 +234,14 @@
     
     .result-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
       margin: 20px 0;
     }
     
     .result-box {
       background-color: white;
-      padding: 20px;
+      padding: 15px;
       border-radius: 8px;
       text-align: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -250,11 +250,12 @@
     .result-label {
       font-weight: bold;
       color: #666;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
     }
     
     .result-value {
-      font-size: 36px;
+      font-size: 24px;
       font-weight: bold;
       color: #2196F3;
     }
@@ -342,7 +343,7 @@
     
     <div class="passage-selector">
       <label for="passageSelect">📚 Choose a Reading Passage:</label>
-      <select id="passageSelect" onchange="changePassage()">
+      <select id="passageSelect">
         <option value="0">An Unusual Burglar (175 words)</option>
         <option value="1">The Amazing Dolphins (162 words)</option>
         <option value="2">A Day at the Space Center (189 words)</option>
@@ -384,8 +385,6 @@
     <div id="speechText">
       Voice recognition results will appear here...
     </div>
-    
-    <!-- All passages here - same as before but truncated for brevity -->
     
     <!-- Passage 0: An Unusual Burglar -->
     <div class="passage active" id="passage-0">
@@ -529,121 +528,84 @@
     
     // Comprehensive homophone groups
     const homophones = {
-      // Common homophones that students often encounter
       'to': ['to', 'too', 'two'],
       'too': ['to', 'too', 'two'],
       'two': ['to', 'too', 'two'],
-      
       'there': ['there', 'their', 'theyre'],
       'their': ['there', 'their', 'theyre'],
       'theyre': ['there', 'their', 'theyre'],
-      
       'your': ['your', 'youre'],
       'youre': ['your', 'youre'],
-      
-      'its': ['its', 'its'],  // possessive vs contraction
-      
+      'its': ['its', 'its'],
       'here': ['here', 'hear'],
       'hear': ['here', 'hear'],
-      
       'where': ['where', 'wear', 'were'],
       'wear': ['where', 'wear', 'were'],
       'were': ['where', 'wear', 'were'],
-      
       'no': ['no', 'know'],
       'know': ['no', 'know'],
-      
       'new': ['new', 'knew'],
       'knew': ['new', 'knew'],
-      
       'one': ['one', 'won'],
       'won': ['one', 'won'],
-      
       'write': ['write', 'right', 'rite'],
       'right': ['write', 'right', 'rite'],
       'rite': ['write', 'right', 'rite'],
-      
       'sea': ['sea', 'see'],
       'see': ['sea', 'see'],
-      
       'be': ['be', 'bee'],
       'bee': ['be', 'bee'],
-      
       'for': ['for', 'four', 'fore'],
       'four': ['for', 'four', 'fore'],
       'fore': ['for', 'four', 'fore'],
-      
       'by': ['by', 'buy', 'bye'],
       'buy': ['by', 'buy', 'bye'],
       'bye': ['by', 'buy', 'bye'],
-      
       'son': ['son', 'sun'],
       'sun': ['son', 'sun'],
-      
       'our': ['our', 'hour'],
       'hour': ['our', 'hour'],
-      
       'ate': ['ate', 'eight'],
       'eight': ['ate', 'eight'],
-      
       'break': ['break', 'brake'],
       'brake': ['break', 'brake'],
-      
       'dear': ['dear', 'deer'],
       'deer': ['dear', 'deer'],
-      
       'fair': ['fair', 'fare'],
       'fare': ['fair', 'fare'],
-      
       'flower': ['flower', 'flour'],
       'flour': ['flower', 'flour'],
-      
       'hole': ['hole', 'whole'],
       'whole': ['hole', 'whole'],
-      
       'mail': ['mail', 'male'],
       'male': ['mail', 'male'],
-      
       'meat': ['meat', 'meet'],
       'meet': ['meat', 'meet'],
-      
       'peace': ['peace', 'piece'],
       'piece': ['peace', 'piece'],
-      
       'plain': ['plain', 'plane'],
       'plane': ['plain', 'plane'],
-      
       'rain': ['rain', 'reign', 'rein'],
       'reign': ['rain', 'reign', 'rein'],
       'rein': ['rain', 'reign', 'rein'],
-      
       'red': ['red', 'read'],
       'read': ['red', 'read'],
-      
       'road': ['road', 'rode'],
       'rode': ['road', 'rode'],
-      
       'sail': ['sail', 'sale'],
       'sale': ['sail', 'sale'],
-      
       'tail': ['tail', 'tale'],
       'tale': ['tail', 'tale'],
-      
       'threw': ['threw', 'through'],
       'through': ['threw', 'through'],
-      
       'wait': ['wait', 'weight'],
       'weight': ['wait', 'weight'],
-      
       'way': ['way', 'weigh'],
       'weigh': ['way', 'weigh'],
-      
       'weak': ['weak', 'week'],
       'week': ['weak', 'week'],
-      
       'which': ['which', 'witch'],
       'witch': ['which', 'witch'],
-      
       'wood': ['wood', 'would'],
       'would': ['wood', 'would']
     };
@@ -655,7 +617,6 @@
       
       if (word1 === word2) return true;
       
-      // Check if both words are in the same homophone group
       if (homophones[word1] && homophones[word1].includes(word2)) {
         return true;
       }
@@ -675,11 +636,13 @@
       "The Mystery of the Missing Homework - A funny story about sibling pranks"
     ];
     
-    // Change passage function
+    // Change passage function - FIXED
     function changePassage() {
       const selectElement = document.getElementById('passageSelect');
-      const selectedIndex = selectElement.value;
+      const selectedIndex = parseInt(selectElement.value);
       const passageInfo = document.getElementById('passageInfo');
+      
+      console.log('Changing to passage:', selectedIndex);
       
       // Hide all passages
       document.querySelectorAll('.passage').forEach(passage => {
@@ -687,7 +650,13 @@
       });
       
       // Show selected passage
-      document.getElementById(`passage-${selectedIndex}`).classList.add('active');
+      const targetPassage = document.getElementById(`passage-${selectedIndex}`);
+      if (targetPassage) {
+        targetPassage.classList.add('active');
+        console.log('Activated passage:', selectedIndex);
+      } else {
+        console.error('Passage not found:', `passage-${selectedIndex}`);
+      }
       
       // Update passage info
       passageInfo.textContent = `Selected: ${passageDescriptions[selectedIndex]}`;
@@ -697,14 +666,15 @@
       
       // Reload passage words
       loadPassageWords();
-      
-      console.log(`Changed to passage ${selectedIndex}`);
     }
     
     // Get passage words for comparison
     function loadPassageWords() {
       const activePassage = document.querySelector('.passage.active');
-      if (!activePassage) return;
+      if (!activePassage) {
+        console.error('No active passage found');
+        return;
+      }
       
       const passageText = activePassage.innerText
         .replace(/Word count: \d+/g, '')
@@ -715,17 +685,22 @@
         .filter(word => word.length > 0);
       
       passageWords = passageText;
+      console.log(`Loaded passage ${currentPassageIndex}:`, passageWords.length, 'words');
+    }
+    
+    // Initialize speech recognition - FIXED
+    function
 
-      // Initialize speech recognition
-function initializeSpeech() {
-  const status = document.getElementById('status');
-  const troubleshoot = document.getElementById('troubleshoot');
-  
+    initializeSpeech() {
+const status = document.getElementById('status');
+const troubleshoot = document.getElementById('troubleshoot');
+      console.log('Starting speech initialization...');
   status.textContent = '🔄 Setting up speech recognition...';
   status.className = 'status';
   
   // Check browser support
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.error('Speech recognition not supported');
     status.textContent = '❌ Speech recognition not supported in this browser';
     status.className = 'status error';
     troubleshoot.classList.add('show');
@@ -737,10 +712,15 @@ function initializeSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
+    console.log('Created speech recognition object');
+    
     // Configure recognition
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+    
+    console.log('Configured speech recognition');
     
     // Set up event handlers
     recognition.onstart = function() {
@@ -784,13 +764,14 @@ function initializeSpeech() {
       isListening = false;
       
       if (event.error === 'not-allowed') {
-        status.textContent = '❌ Microphone access denied';
+        status.textContent = '❌ Microphone access denied - please allow and try again';
         status.className = 'status error';
         troubleshoot.classList.add('show');
       } else if (event.error === 'no-speech') {
         console.log('No speech detected, continuing...');
+        // Don't show error for no-speech, it's normal
       } else {
-        status.textContent = '❌ Speech recognition error: ' + event.error;
+        status.textContent = '❌ Speech error: ' + event.error;
         status.className = 'status error';
       }
     };
@@ -802,8 +783,9 @@ function initializeSpeech() {
       if (isRunning) {
         // Restart if session is still active
         setTimeout(() => {
-          if (isRunning) {
+          if (isRunning && recognition) {
             try {
+              console.log('Restarting speech recognition...');
               recognition.start();
             } catch (e) {
               console.error('Error restarting recognition:', e);
@@ -816,22 +798,30 @@ function initializeSpeech() {
       }
     };
     
+    console.log('Set up event handlers, testing recognition...');
+    
     // Test recognition briefly
     recognition.start();
     
-    // Stop test after 1 second and show success
+    // Stop test after 2 seconds and show success
     setTimeout(() => {
       if (recognition && isListening) {
+        console.log('Test successful, stopping...');
         recognition.stop();
-        status.textContent = '✅ Speech recognition is ready!';
-        status.className = 'status ready';
         
-        // Show other buttons
-        document.getElementById('initButton').style.display = 'none';
-        document.getElementById('testButton').style.display = 'inline-block';
-        document.getElementById('startButton').style.display = 'inline-block';
+        setTimeout(() => {
+          status.textContent = '✅ Speech recognition is ready!';
+          status.className = 'status ready';
+          
+          // Show other buttons
+          document.getElementById('initButton').style.display = 'none';
+          document.getElementById('testButton').style.display = 'inline-block';
+          document.getElementById('startButton').style.display = 'inline-block';
+          
+          console.log('Speech initialization complete');
+        }, 500);
       }
-    }, 1000);
+    }, 2000);
     
   } catch (error) {
     console.error('Failed to initialize speech recognition:', error);
@@ -843,7 +833,10 @@ function initializeSpeech() {
 
 // Test speech recognition
 function testSpeech() {
-  if (!recognition) return;
+  if (!recognition) {
+    console.error('Recognition not initialized');
+    return;
+  }
   
   const status = document.getElementById('status');
   status.textContent = '🧪 Testing... Say something!';
@@ -864,7 +857,7 @@ function testSpeech() {
     
   } catch (error) {
     console.error('Test failed:', error);
-    status.textContent = '❌ Test failed';
+    status.textContent = '❌ Test failed - ' + error.message;
     status.className = 'status error';
   }
 }
@@ -875,6 +868,8 @@ function startPractice() {
     alert('Please initialize speech recognition first.');
     return;
   }
+  
+  console.log('Starting practice session...');
   
   // Reset everything
   spokenWords = [];
@@ -898,8 +893,20 @@ function startPractice() {
   // Start speech recognition
   try {
     recognition.start();
+    console.log('Started speech recognition for practice');
   } catch (error) {
     console.error('Failed to start recognition:', error);
+    if (error.name === 'InvalidStateError') {
+      // Already running, stop and restart
+      recognition.stop();
+      setTimeout(() => {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error('Failed to restart:', e);
+        }
+      }, 100);
+    }
   }
   
   // Start timer
@@ -908,6 +915,8 @@ function startPractice() {
 
 // Stop practice
 function stopPractice() {
+  console.log('Stopping practice session...');
+  
   clearInterval(timer);
   isRunning = false;
   
@@ -1099,15 +1108,35 @@ function displayDetailedAnalysis() {
   }
 }
 
-// Event listeners
-document.getElementById('initButton').addEventListener('click', initializeSpeech);
-document.getElementById('testButton').addEventListener('click', testSpeech);
-document.getElementById('startButton').addEventListener('click', startPractice);
-document.getElementById('stopButton').addEventListener('click', stopPractice);
-
-// Initialize when page loads
-window.addEventListener('load', function() {
+// Set up event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, setting up event listeners...');
+  
+  // Dropdown change listener
+  const passageSelect = document.getElementById('passageSelect');
+  passageSelect.addEventListener('change', changePassage);
+  
+  // Button listeners
+  document.getElementById('initButton').addEventListener('click', initializeSpeech);
+  document.getElementById('testButton').addEventListener('click', testSpeech);
+  document.getElementById('startButton').addEventListener('click', startPractice);
+  document.getElementById('stopButton').addEventListener('click', stopPractice);
+  
+  // Load initial passage
   loadPassageWords();
-  console.log('Page loaded with homophone support enabled');
+  
+  console.log('Setup complete');
+});
+
+// Initialize when page loads (fallback)
+window.addEventListener('load', function() {
+  console.log('Window loaded');
+  
+  // Ensure passage words are loaded
+  if (passageWords.length === 0) {
+    loadPassageWords();
+  }
+  
+  // Log homophone database info
   console.log('Homophone database contains', Object.keys(homophones).length, 'word groups');
 });
