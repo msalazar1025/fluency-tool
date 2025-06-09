@@ -715,3 +715,399 @@
         .filter(word => word.length > 0);
       
       passageWords = passageText;
+
+      // Initialize speech recognition
+function initializeSpeech() {
+  const status = document.getElementById('status');
+  const troubleshoot = document.getElementById('troubleshoot');
+  
+  status.textContent = '🔄 Setting up speech recognition...';
+  status.className = 'status';
+  
+  // Check browser support
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    status.textContent = '❌ Speech recognition not supported in this browser';
+    status.className = 'status error';
+    troubleshoot.classList.add('show');
+    return;
+  }
+  
+  try {
+    // Create recognition object
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    
+    // Configure recognition
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    // Set up event handlers
+    recognition.onstart = function() {
+      console.log('Speech recognition started');
+      isListening = true;
+      status.textContent = '🎤 Speech recognition is listening...';
+      status.className = 'status listening';
+    };
+    
+    recognition.onresult = function(event) {
+      let interimTranscript = '';
+      let finalTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+        transcriptText += finalTranscript;
+        const words = finalTranscript
+          .toLowerCase()
+          .replace(/[.,!?;:"]/g, '')
+          .trim()
+          .split(/\s+/)
+          .filter(word => word.length > 0);
+        
+        spokenWords = spokenWords.concat(words);
+        console.log('Words spoken so far:', spokenWords.length);
+      }
+      
+      document.getElementById('speechText').textContent = transcriptText + interimTranscript;
+    };
+    
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+      isListening = false;
+      
+      if (event.error === 'not-allowed') {
+        status.textContent = '❌ Microphone access denied';
+        status.className = 'status error';
+        troubleshoot.classList.add('show');
+      } else if (event.error === 'no-speech') {
+        console.log('No speech detected, continuing...');
+      } else {
+        status.textContent = '❌ Speech recognition error: ' + event.error;
+        status.className = 'status error';
+      }
+    };
+    
+    recognition.onend = function() {
+      console.log('Speech recognition ended');
+      isListening = false;
+      
+      if (isRunning) {
+        // Restart if session is still active
+        setTimeout(() => {
+          if (isRunning) {
+            try {
+              recognition.start();
+            } catch (e) {
+              console.error('Error restarting recognition:', e);
+            }
+          }
+        }, 100);
+      } else {
+        status.textContent = '✅ Speech recognition ready';
+        status.className = 'status ready';
+      }
+    };
+    
+    // Test recognition briefly
+    recognition.start();
+    
+    // Stop test after 1 second and show success
+    setTimeout(() => {
+      if (recognition && isListening) {
+        recognition.stop();
+        status.textContent = '✅ Speech recognition is ready!';
+        status.className = 'status ready';
+        
+        // Show other buttons
+        document.getElementById('initButton').style.display = 'none';
+        document.getElementById('testButton').style.display = 'inline-block';
+        document.getElementById('startButton').style.display = 'inline-block';
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Failed to initialize speech recognition:', error);
+    status.textContent = '❌ Failed to initialize speech recognition';
+    status.className = 'status error';
+    troubleshoot.classList.add('show');
+  }
+}
+
+// Test speech recognition
+function testSpeech() {
+  if (!recognition) return;
+  
+  const status = document.getElementById('status');
+  status.textContent = '🧪 Testing... Say something!';
+  status.className = 'status listening';
+  
+  document.getElementById('speechText').textContent = 'Testing speech recognition... Say something!';
+  
+  try {
+    recognition.start();
+    
+    setTimeout(() => {
+      if (isListening) {
+        recognition.stop();
+        status.textContent = '✅ Test complete - speech recognition working!';
+        status.className = 'status ready';
+      }
+    }, 5000);
+    
+  } catch (error) {
+    console.error('Test failed:', error);
+    status.textContent = '❌ Test failed';
+    status.className = 'status error';
+  }
+}
+
+// Start practice session
+function startPractice() {
+  if (!recognition) {
+    alert('Please initialize speech recognition first.');
+    return;
+  }
+  
+  // Reset everything
+  spokenWords = [];
+  transcriptText = '';
+  errorDetails = [];
+  homophoneMatches = [];
+  seconds = 60;
+  isRunning = true;
+  
+  // Update UI
+  document.getElementById('testButton').style.display = 'none';
+  document.getElementById('startButton').style.display = 'none';
+  document.getElementById('stopButton').style.display = 'inline-block';
+  document.getElementById('results').classList.remove('active');
+  document.getElementById('speechText').textContent = 'Start reading the passage aloud...';
+  
+  const status = document.getElementById('status');
+  status.textContent = '📊 Reading session active - speak clearly!';
+  status.className = 'status listening';
+  
+  // Start speech recognition
+  try {
+    recognition.start();
+  } catch (error) {
+    console.error('Failed to start recognition:', error);
+  }
+  
+  // Start timer
+  timer = setInterval(updateTimer, 1000);
+}
+
+// Stop practice
+function stopPractice() {
+  clearInterval(timer);
+  isRunning = false;
+  
+  if (recognition && isListening) {
+    recognition.stop();
+  }
+  
+  // Calculate results with homophone checking
+  calculateResults();
+  
+  // Update UI
+  document.getElementById('stopButton').style.display = 'none';
+  document.getElementById('testButton').style.display = 'inline-block';
+  document.getElementById('startButton').style.display = 'inline-block';
+  
+  const status = document.getElementById('status');
+  status.textContent = '✅ Reading session complete!';
+  status.className = 'status ready';
+  
+  // Reset timer
+  document.getElementById('timer').textContent = '1:00';
+  document.getElementById('timer').className = '';
+}
+
+// Update timer
+function updateTimer() {
+  seconds--;
+  
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const timerElement = document.getElementById('timer');
+  timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+  
+  if (seconds <= 10) {
+    timerElement.className = 'timer danger';
+  } else if (seconds <= 20) {
+    timerElement.className = 'timer warning';
+  }
+  
+  if (seconds <= 0) {
+    stopPractice();
+  }
+}
+
+// Calculate results with smart homophone checking
+function calculateResults() {
+  let correct = 0;
+  let incorrect = 0;
+  let homophoneCount = 0;
+  errorDetails = [];
+  homophoneMatches = [];
+  
+  console.log('Calculating results with homophone checking...');
+  console.log('Spoken words:', spokenWords);
+  console.log('Passage words:', passageWords);
+  
+  // Compare spoken words to passage with homophone intelligence
+  for (let i = 0; i < Math.max(spokenWords.length, passageWords.length); i++) {
+    if (i < spokenWords.length && i < passageWords.length) {
+      const spokenWord = spokenWords[i];
+      const expectedWord = passageWords[i];
+      
+      if (spokenWord === expectedWord) {
+        // Exact match
+        correct++;
+        console.log(`✅ Exact match: "${spokenWord}"`);
+      } else if (areHomophones(spokenWord, expectedWord)) {
+        // Homophone match - count as correct
+        correct++;
+        homophoneCount++;
+        homophoneMatches.push({
+          spoken: spokenWord,
+          expected: expectedWord,
+          position: i + 1
+        });
+        console.log(`🎯 Homophone match: "${spokenWord}" ≈ "${expectedWord}"`);
+      } else {
+        // Real error
+        incorrect++;
+        errorDetails.push({
+          type: 'substitution',
+          spoken: spokenWord,
+          expected: expectedWord,
+          position: i + 1
+        });
+        console.log(`❌ Mismatch: "${spokenWord}" ≠ "${expectedWord}"`);
+      }
+    } else if (i < passageWords.length) {
+      // Word was skipped
+      errorDetails.push({
+        type: 'omission',
+        expected: passageWords[i],
+        position: i + 1
+      });
+      console.log(`⏭️ Skipped: "${passageWords[i]}"`);
+    }
+  }
+  
+  const totalWords = spokenWords.length;
+  const accuracy = totalWords > 0 ? Math.round((correct / totalWords) * 100) : 0;
+  const timeTaken = 60 - seconds;
+  const wpm = Math.round((totalWords / timeTaken) * 60);
+  
+  console.log(`Results: ${correct} correct, ${homophoneCount} homophones, ${incorrect} incorrect`);
+  
+  // Update results display
+  document.getElementById('totalWords').textContent = totalWords;
+  document.getElementById('correctWords').textContent = correct - homophoneCount; // Exact matches only
+  document.getElementById('homophoneWords').textContent = homophoneCount;
+  document.getElementById('incorrectWords').textContent = incorrect;
+  document.getElementById('wpm').textContent = wpm;
+  document.getElementById('accuracy').textContent = accuracy + '%';
+  
+  // Show detailed analysis
+  displayDetailedAnalysis();
+  
+  // Show results
+  document.getElementById('results').classList.add('active');
+}
+
+// Display detailed error and homophone analysis
+function displayDetailedAnalysis() {
+  const errorList = document.getElementById('errorList');
+  errorList.innerHTML = '';
+  
+  // Show homophones first (positive feedback)
+  if (homophoneMatches.length > 0) {
+    const homophoneHeader = document.createElement('div');
+    homophoneHeader.innerHTML = '<h5 style="color: #f57c00; margin: 15px 0 10px 0;">🎯 Smart Homophone Matches (Counted as Correct)</h5>';
+    errorList.appendChild(homophoneHeader);
+    
+    homophoneMatches.forEach(match => {
+      const homophoneItem = document.createElement('div');
+      homophoneItem.className = 'error-item homophone-accepted';
+      homophoneItem.innerHTML = `
+        <div>
+          <span class="error-spoken">"${match.spoken}"</span>
+          ≈
+          <span class="error-expected">"${match.expected}"</span>
+          <span class="homophone-label">HOMOPHONE</span>
+        </div>
+        <small>(Word #${match.position})</small>
+      `;
+      errorList.appendChild(homophoneItem);
+    });
+  }
+  
+  // Show actual errors
+  if (errorDetails.length > 0) {
+    const errorHeader = document.createElement('div');
+    errorHeader.innerHTML = '<h5 style="color: #c62828; margin: 15px 0 10px 0;">❌ Words That Need Practice</h5>';
+    errorList.appendChild(errorHeader);
+    
+    errorDetails.forEach(error => {
+      const errorItem = document.createElement('div');
+      errorItem.className = 'error-item';
+      
+      if (error.type === 'substitution') {
+        errorItem.innerHTML = `
+          <div>
+            <span class="error-spoken">"${error.spoken}"</span>
+            →
+            <span class="error-expected">"${error.expected}"</span>
+          </div>
+          <small>(Word #${error.position})</small>
+        `;
+      } else if (error.type === 'omission') {
+        errorItem.innerHTML = `
+          <div>
+            <span class="error-spoken">SKIPPED</span>
+            →
+            <span class="error-expected">"${error.expected}"</span>
+          </div>
+          <small>(Word #${error.position})</small>
+        `;
+      }
+      
+      errorList.appendChild(errorItem);
+    });
+  }
+  
+  // Show success message if no real errors
+  if (errorDetails.length === 0 && homophoneMatches.length === 0) {
+    errorList.innerHTML = '<p style="color: #2e7d32; font-style: italic; text-align: center; padding: 20px;">🎉 Perfect! No errors detected!</p>';
+  } else if (errorDetails.length === 0) {
+    const successMessage = document.createElement('div');
+    successMessage.innerHTML = '<p style="color: #2e7d32; font-style: italic; text-align: center; padding: 10px;">🌟 Excellent! Only homophone variations detected - no real errors!</p>';
+    errorList.appendChild(successMessage);
+  }
+}
+
+// Event listeners
+document.getElementById('initButton').addEventListener('click', initializeSpeech);
+document.getElementById('testButton').addEventListener('click', testSpeech);
+document.getElementById('startButton').addEventListener('click', startPractice);
+document.getElementById('stopButton').addEventListener('click', stopPractice);
+
+// Initialize when page loads
+window.addEventListener('load', function() {
+  loadPassageWords();
+  console.log('Page loaded with homophone support enabled');
+  console.log('Homophone database contains', Object.keys(homophones).length, 'word groups');
+});
